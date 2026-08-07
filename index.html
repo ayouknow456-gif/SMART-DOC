@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMART DOC — ระบบเทมเพลตเอกสารราชการ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Chonburi&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   SMART DOC — design tokens
+   navy      #16233F   (ครุฑ / official blue, structure, sidebar)
+   ink       #1F2430   (body text)
+   bronze    #B08A52   (seal-gold accent, primary actions)
+   slate-bg  #E7E9EE   (workspace background)
+   paper     #FFFFFF   (document canvas)
+   guide-blue #2F5FA8  (margin / "ห้ามเกินเส้นน้ำเงินนี้")
+   line-red  #C0554D   (baseline reference, quiet warning tone)
+   ========================================================== */
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: 'Sarabun', 'Tahoma', sans-serif;
+  background: #E7E9EE;
+  color: #1F2430;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 272px 1fr;
+  height: 100vh;
+}
+
+/* ================= SIDEBAR ================= */
+.sidebar {
+  background: #16233F;
+  color: #D9DEEA;
+  padding: 22px 18px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  width: 38px; height: 38px;
+  border: 1.5px solid #B08A52;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  color: #B08A52;
+  font-family: 'Chonburi', serif;
+  font-size: 18px;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+.brand-name { font-family: 'Chonburi', serif; font-size: 16px; color: #fff; letter-spacing: .3px; }
+.brand-name em { font-style: normal; color: #B08A52; }
+.brand-sub { font-size: 11.5px; color: #8B96B3; margin-top: 2px; }
+
+.side-section h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #7C88A8;
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.template-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.template-list li {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  border: 1px solid transparent;
+  transition: background .12s ease, border-color .12s ease;
+}
+.template-list li:hover { background: #1E2E52; }
+.template-list li.active {
+  background: #23345E;
+  border-color: #B08A52;
+  color: #fff;
+}
+.template-list li .tpl-code {
+  display: block;
+  font-size: 10.5px;
+  color: #8B96B3;
+  margin-top: 2px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 8px 0;
+  cursor: pointer;
+  position: relative;
+}
+.toggle-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch {
+  width: 34px; height: 19px;
+  background: #2A3A63;
+  border-radius: 999px;
+  position: relative;
+  flex-shrink: 0;
+  transition: background .15s ease;
+}
+.switch::after {
+  content: '';
+  position: absolute; top: 2px; left: 2px;
+  width: 15px; height: 15px;
+  background: #B7C0D8;
+  border-radius: 50%;
+  transition: transform .15s ease, background .15s ease;
+}
+.toggle-row input:checked + .switch { background: #B08A52; }
+.toggle-row input:checked + .switch::after { transform: translateX(15px); background: #fff; }
+
+.field-row { font-size: 12.5px; color: #AEB8D0; padding: 8px 0; }
+.field-row span { display: block; margin-bottom: 6px; }
+.field-row input[type=number] {
+  width: 100%;
+  background: #0F1930;
+  border: 1px solid #2A3A63;
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.margin-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.margin-inputs input { width: 100%; }
+
+.side-btn {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #23345E;
+  border: 1px solid #34457A;
+  color: #E7ECFA;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.side-btn:hover { background: #2C4076; }
+.side-btn.ghost { background: transparent; border-color: #3A4A78; color: #93A0C2; }
+.side-btn.ghost:hover { background: #1E2E52; }
+
+/* ================= WORKSPACE ================= */
+.workspace { display: flex; flex-direction: column; height: 100vh; min-width: 0; }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #DCE0E9;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 20;
+}
+.tb-group { display: flex; align-items: center; gap: 4px; }
+.tb-divider { width: 1px; height: 22px; background: #E2E5ED; margin: 0 6px; }
+.tb-spacer { flex: 1; }
+
+.toolbar button {
+  min-width: 32px; height: 32px;
+  border: 1px solid #E2E5ED;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333B4D;
+  padding: 0 8px;
+  transition: background .1s ease, border-color .1s ease;
+}
+.toolbar button:hover { background: #F1F3F8; border-color: #C9CFDE; }
+.toolbar button.active { background: #16233F; border-color: #16233F; color: #fff; }
+.toolbar button.primary {
+  background: #B08A52; border-color: #B08A52; color: #fff; font-weight: 600;
+}
+.toolbar button.primary:hover { background: #9C7845; }
+
+.tb-select {
+  height: 32px;
+  border: 1px solid #E2E5ED;
+  border-radius: 6px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 0 6px;
+  color: #333B4D;
+}
+
+/* table grid picker */
+.table-picker {
+  position: absolute;
+  top: 46px; left: 400px;
+  background: #fff;
+  border: 1px solid #DCE0E9;
+  box-shadow: 0 8px 24px rgba(20,25,40,.14);
+  border-radius: 8px;
+  padding: 10px;
+  z-index: 30;
+}
+.table-picker.hidden { display: none; }
+.grid-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 16px);
+  grid-template-rows: repeat(6, 16px);
+  gap: 2px;
+}
+.grid-picker div { width: 16px; height: 16px; border: 1px solid #DCE0E9; background: #F7F8FA; }
+.grid-picker div.hover { background: #B08A52; border-color: #9C7845; }
+.grid-label { text-align: center; margin-top: 6px; font-size: 12px; color: #6B7286; }
+
+/* ================= PAPER / DOCUMENT CANVAS ================= */
+.paper-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 32px 0 60px;
+  display: flex;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 20% 0%, #EDEFF4 0%, #E7E9EE 60%);
+}
+
+.paper {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(20,25,40,.08), 0 18px 40px rgba(20,25,40,.14);
+  flex-shrink: 0;
+}
+
+.guide-margin {
+  position: absolute;
+  top: var(--m-top, 30mm);
+  left: var(--m-left, 30mm);
+  right: var(--m-right, 20mm);
+  bottom: var(--m-bottom, 20mm);
+  border: 1px dashed #2F5FA8;
+  pointer-events: none;
+}
+.guide-margin::before {
+  content: 'ห้ามเกินเส้นนี้';
+  position: absolute;
+  top: -18px; left: 0;
+  font-size: 9px;
+  color: #2F5FA8;
+  letter-spacing: .02em;
+}
+
+.guide-baseline {
+  position: absolute;
+  top: var(--m-top, 30mm);
+  left: var(--m-left, 30mm);
+  right: var(--m-right, 20mm);
+  bottom: var(--m-bottom, 20mm);
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0, transparent calc(8mm - 1px),
+    rgba(192,85,77,.35) calc(8mm - 1px), rgba(192,85,77,.35) 8mm
+  );
+  display: none;
+}
+.paper.show-baseline .guide-baseline { display: block; }
+.paper:not(.show-margins) .guide-margin { display: none; }
+
+.crest-box {
+  position: absolute;
+  top: calc(var(--m-top, 30mm) - 4mm);
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--crest-size, 3cm);
+  height: var(--crest-size, 3cm);
+  border: 1px dashed #B08A52;
+  display: flex; align-items: center; justify-content: center;
+  color: #B08A52;
+  font-size: 10px;
+  background: rgba(176,138,82,.04);
+}
+.paper:not(.show-crest) .crest-box { display: none; }
+.crest-placeholder { text-align: center; line-height: 1.4; }
+
+.page {
+  position: relative;
+  padding: var(--m-top, 30mm) var(--m-right, 20mm) var(--m-bottom, 20mm) var(--m-left, 30mm);
+  min-height: 297mm;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 16pt;
+  line-height: 1.5;
+  outline: none;
+  color: #1a1a1a;
+}
+.page table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.page table td, .page table th {
+  border: 1px solid #444;
+  padding: 6px 8px;
+  min-width: 40px;
+  vertical-align: top;
+}
+.page img { max-width: 100%; }
+.page .doc-head { text-align: center; margin-bottom: 4px; }
+.page .doc-title { font-family: 'Chonburi', serif; font-size: 20pt; }
+.page .field-line { margin: 2px 0; }
+.page hr.sep { border: none; border-top: 1px solid #999; margin: 10px 0; }
+
+.statusbar {
+  padding: 8px 18px;
+  font-size: 12px;
+  color: #6B7286;
+  background: #fff;
+  border-top: 1px solid #E2E5ED;
+  display: flex; gap: 8px; align-items: center;
+}
+.statusbar .dot { color: #C9CFDE; }
+
+/* ================= PRINT ================= */
+@media print {
+  .sidebar, .toolbar, .statusbar, .table-picker, .guide-margin, .guide-baseline, .crest-box { display: none !important; }
+  .paper-scroll { padding: 0; background: none; overflow: visible; }
+  .paper { box-shadow: none; width: auto; min-height: auto; }
+  .page { padding: 30mm 20mm 20mm 30mm; }
+  body { background: #fff; }
+}
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">札</div>
+      <div class="brand-text">
+        <span class="brand-name">SMART<em>DOC</em></span>
+        <span class="brand-sub">ระบบเทมเพลตเอกสารราชการ</span>
+      </div>
+    </div>
+
+    <nav class="side-section">
+      <h3>เลือกแบบฟอร์ม</h3>
+      <ul id="template-list" class="template-list"></ul>
+    </nav>
+
+    <nav class="side-section">
+      <h3>โครงเอกสาร</h3>
+      <label class="toggle-row">
+        <span>เส้นขอบระยะขอบกระดาษ</span>
+        <input type="checkbox" id="toggle-margins" checked>
+        <span class="switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span>เส้นบรรทัดอ้างอิง</span>
+        <input type="checkbox" id="toggle-baseline">
+        <span class="switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span>กรอบตราครุฑ</span>
+        <input type="checkbox" id="toggle-crest" checked>
+        <span class="switch"></span>
+      </label>
+
+      <div class="field-row" id="crest-size-row">
+        <span>ขนาดตราครุฑ (ซม.)</span>
+        <input type="number" id="crest-size" value="3" min="1" max="6" step="0.5">
+      </div>
+
+      <div class="field-row">
+        <span>ระยะขอบ (ซม.)</span>
+        <div class="margin-inputs">
+          <input type="number" id="margin-top" value="3" min="1" max="6" step="0.5" title="บน">
+          <input type="number" id="margin-left" value="3" min="1" max="6" step="0.5" title="ซ้าย">
+          <input type="number" id="margin-right" value="2" min="1" max="6" step="0.5" title="ขวา">
+          <input type="number" id="margin-bottom" value="2" min="1" max="6" step="0.5" title="ล่าง">
+        </div>
+      </div>
+    </nav>
+
+    <nav class="side-section">
+      <h3>ไฟล์</h3>
+      <button class="side-btn" id="btn-save">บันทึกฉบับร่าง</button>
+      <button class="side-btn" id="btn-load">เปิดฉบับร่างล่าสุด</button>
+      <button class="side-btn ghost" id="btn-reset">ล้างและเริ่มใหม่</button>
+    </nav>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="workspace">
+
+    <!-- Toolbar -->
+    <div class="toolbar" id="toolbar">
+      <div class="tb-group">
+        <select id="fontFamily" class="tb-select" title="รูปแบบตัวอักษร">
+          <option value="'Sarabun', sans-serif" selected>TH Sarabun</option>
+          <option value="'Chonburi', serif">Chonburi (หัวเรื่อง)</option>
+          <option value="'Angsana New', serif">Angsana New</option>
+          <option value="Tahoma, sans-serif">Tahoma</option>
+        </select>
+        <select id="fontSize" class="tb-select" title="ขนาดตัวอักษร">
+          <option value="1">10pt</option>
+          <option value="2">12pt</option>
+          <option value="3" selected>16pt</option>
+          <option value="4">18pt</option>
+          <option value="5">20pt</option>
+          <option value="6">24pt</option>
+          <option value="7">28pt</option>
+        </select>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <div class="tb-group">
+        <button data-cmd="bold" title="ตัวหนา"><b>B</b></button>
+        <button data-cmd="italic" title="ตัวเอียง"><i>I</i></button>
+        <button data-cmd="underline" title="ขีดเส้นใต้"><u>U</u></button>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <div class="tb-group">
+        <button data-cmd="justifyLeft" title="ชิดซ้าย">⇤</button>
+        <button data-cmd="justifyCenter" title="กึ่งกลาง">≡</button>
+        <button data-cmd="justifyRight" title="ชิดขวา">⇥</button>
+        <button data-cmd="justifyFull" title="กระจาย">☰</button>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <div class="tb-group">
+        <select id="lineHeight" class="tb-select" title="ระยะบรรทัด">
+          <option value="1">1.0</option>
+          <option value="1.5" selected>1.5</option>
+          <option value="2">2.0</option>
+          <option value="2.5">2.5</option>
+        </select>
+        <button id="btn-indent" title="ย่อหน้า">⇥¶</button>
+        <button id="btn-outdent" title="ยกเลิกย่อหน้า">¶⇤</button>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <div class="tb-group">
+        <button id="btn-table" title="แทรกตาราง">▦ ตาราง</button>
+        <button id="btn-image" title="แทรกรูปภาพ">🖼 รูปภาพ</button>
+        <input type="file" id="file-image" accept="image/*" hidden>
+      </div>
+
+      <div class="tb-spacer"></div>
+
+      <div class="tb-group">
+        <button id="btn-print" class="primary" title="พิมพ์ / บันทึกเป็น PDF">พิมพ์ / PDF</button>
+      </div>
+    </div>
+
+    <!-- Table size picker popover -->
+    <div id="table-picker" class="table-picker hidden">
+      <div class="grid-picker" id="grid-picker"></div>
+      <div class="grid-label" id="grid-label">1 × 1</div>
+    </div>
+
+    <!-- Paper canvas -->
+    <div class="paper-scroll">
+      <div class="paper" id="paper">
+        <div class="guide guide-margin" id="guide-margin"></div>
+        <div class="guide guide-baseline" id="guide-baseline"></div>
+        <div class="crest-box" id="crest-box" contenteditable="false">
+          <div class="crest-placeholder">ตราครุฑ</div>
+        </div>
+        <div class="page" id="page" contenteditable="true" spellcheck="false"></div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span id="status-template">ยังไม่ได้เลือกแบบฟอร์ม</span>
+      <span class="dot">•</span>
+      <span>ขนาด A4 (21 × 29.7 ซม.)</span>
+      <span class="dot">•</span>
+      <span id="status-saved"></span>
+    </div>
+  </main>
+</div>
+
+<script>
+// ==========================================================
+// SMART DOC — เทมเพลตเอกสารราชการ
+// เพิ่มเทมเพลตใหม่ได้โดยเติมอ็อบเจกต์ลงใน TEMPLATES
+// ==========================================================
+
+const TEMPLATES = [
+  {
+    id: "memo",
+    name: "บันทึกข้อความ",
+    code: "แบบ บ.ช. 1 (ทั่วไป)",
+    html: `
+      <div class="doc-head">
+        <div class="doc-title">บันทึกข้อความ</div>
+      </div>
+      <p class="field-line"><b>ส่วนราชการ</b> ..........................................................................................................</p>
+      <p class="field-line"><b>ที่</b> .................................................. <b>วันที่</b> .................................................................</p>
+      <p class="field-line"><b>เรื่อง</b> ........................................................................................................................</p>
+      <hr class="sep">
+      <p class="field-line"><b>เรียน</b> .......................................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ด้วย .................................................................................................................................................................................................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณา</p>
+      <p style="text-align:right; margin-top:40px;">(...........................................................)</p>
+      <p style="text-align:right;">ตำแหน่ง .................................................................</p>
+    `
+  },
+  {
+    id: "resignation",
+    name: "หนังสือลาออกจากตำแหน่ง",
+    code: "หนังสือลาออก",
+    html: `
+      <p style="text-align:right;">เขียนที่ .......................................................................</p>
+      <p style="text-align:right;">วันที่ ........... เดือน ................................ พ.ศ. ...........</p>
+      <p class="field-line"><b>เรื่อง</b> &nbsp;ขอลาออกจากตำแหน่ง</p>
+      <p class="field-line"><b>เรียน</b> &nbsp;.......................................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ข้าพเจ้า .......................................................... ตำแหน่ง .......................................................... สังกัด .......................................................................................................... มีความประสงค์ขอลาออกจากตำแหน่งดังกล่าว ตั้งแต่วันที่ .................................................................. เป็นต้นไป</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ทั้งนี้ เนื่องจาก .......................................................................................................................................................................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ</p>
+      <p style="text-align:right; margin-top:40px;">ขอแสดงความนับถือ</p>
+      <p style="text-align:right; margin-top:30px;">(...........................................................)</p>
+    `
+  },
+  {
+    id: "request",
+    name: "หนังสือขอความอนุเคราะห์",
+    code: "หนังสือภายนอก / ขอความอนุเคราะห์",
+    html: `
+      <p class="field-line"><b>ที่</b> .................................................. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ส่วนราชการ .......................................................................</p>
+      <p class="field-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .......................................................................................................................</p>
+      <p style="text-align:right;">วันที่ ........... เดือน ................................ พ.ศ. ...........</p>
+      <p class="field-line"><b>เรื่อง</b> &nbsp;ขอความอนุเคราะห์ ..........................................................................................</p>
+      <p class="field-line"><b>เรียน</b> &nbsp;.......................................................................................................................</p>
+      <p class="field-line"><b>สิ่งที่ส่งมาด้วย</b> &nbsp;.......................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ด้วย .................................................................................................................................................................................................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาให้ความอนุเคราะห์ ...................................................................................................... จักเป็นพระคุณยิ่ง</p>
+      <p style="text-align:right; margin-top:40px;">ขอแสดงความนับถือ</p>
+      <p style="text-align:right; margin-top:30px;">(...........................................................)</p>
+      <p style="text-align:right;">ตำแหน่ง .................................................................</p>
+      <hr class="sep">
+      <p style="font-size:12pt;">ส่วนราชการเจ้าของเรื่อง .......................................................................</p>
+      <p style="font-size:12pt;">โทร. ................................. โทรสาร .................................................</p>
+    `
+  },
+  {
+    id: "certify",
+    name: "หนังสือรับรอง",
+    code: "หนังสือรับรอง",
+    html: `
+      <div class="doc-head">
+        <div class="doc-title">หนังสือรับรอง</div>
+        <p>เลขที่ .......................................................</p>
+      </div>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;หนังสือฉบับนี้ให้ไว้เพื่อรับรองว่า .......................................................... เกิดวันที่ .................................................. ปัจจุบันดำรงตำแหน่ง .......................................................................... สังกัด .......................................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ทั้งนี้ ได้ปฏิบัติหน้าที่ .................................................................................................................................................................................................................................................................................</p>
+      <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ออกให้ ณ วันที่ ........... เดือน ................................ พ.ศ. ...........</p>
+      <p style="text-align:right; margin-top:50px;">(...........................................................)</p>
+      <p style="text-align:right;">ตำแหน่ง .................................................................</p>
+    `
+  }
+];
+</script>
+<script>
+// ==========================================================
+// SMART DOC — app.js
+// ไม่มี dependency ภายนอก ทำงานได้ทันทีบน GitHub Pages
+// ==========================================================
+
+const paper = document.getElementById('paper');
+const page = document.getElementById('page');
+const statusTemplate = document.getElementById('status-template');
+const statusSaved = document.getElementById('status-saved');
+
+let activeTemplateId = null;
+
+/* ---------------- Templates ---------------- */
+function renderTemplateList() {
+  const ul = document.getElementById('template-list');
+  ul.innerHTML = '';
+  TEMPLATES.forEach(t => {
+    const li = document.createElement('li');
+    li.dataset.id = t.id;
+    li.innerHTML = `${t.name}<span class="tpl-code">${t.code}</span>`;
+    li.addEventListener('click', () => loadTemplate(t.id, true));
+    ul.appendChild(li);
+  });
+}
+
+function loadTemplate(id, confirmIfDirty) {
+  const tpl = TEMPLATES.find(t => t.id === id);
+  if (!tpl) return;
+
+  if (confirmIfDirty && page.innerText.trim().length > 0) {
+    const ok = confirm('เปลี่ยนแบบฟอร์มใหม่จะล้างเนื้อหาปัจจุบันในหน้าเอกสาร ต้องการดำเนินการต่อหรือไม่?');
+    if (!ok) return;
+  }
+
+  page.innerHTML = tpl.html;
+  activeTemplateId = tpl.id;
+  statusTemplate.textContent = `แบบฟอร์ม: ${tpl.name}`;
+
+  document.querySelectorAll('#template-list li').forEach(li => {
+    li.classList.toggle('active', li.dataset.id === id);
+  });
+}
+
+/* ---------------- Toolbar: text commands ---------------- */
+document.querySelectorAll('.toolbar button[data-cmd]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    page.focus();
+    document.execCommand(btn.dataset.cmd, false, null);
+    updateToolbarState();
+  });
+});
+
+document.getElementById('fontFamily').addEventListener('change', e => {
+  page.focus();
+  document.execCommand('fontName', false, e.target.value);
+});
+
+document.getElementById('fontSize').addEventListener('change', e => {
+  page.focus();
+  document.execCommand('fontSize', false, e.target.value);
+});
+
+document.getElementById('lineHeight').addEventListener('change', e => {
+  page.style.lineHeight = e.target.value;
+});
+
+document.getElementById('btn-indent').addEventListener('click', () => {
+  page.focus();
+  document.execCommand('indent', false, null);
+});
+document.getElementById('btn-outdent').addEventListener('click', () => {
+  page.focus();
+  document.execCommand('outdent', false, null);
+});
+
+function updateToolbarState() {
+  ['bold', 'italic', 'underline'].forEach(cmd => {
+    const btn = document.querySelector(`.toolbar button[data-cmd="${cmd}"]`);
+    if (!btn) return;
+    btn.classList.toggle('active', document.queryCommandState(cmd));
+  });
+}
+document.addEventListener('selectionchange', () => {
+  if (document.activeElement === page) updateToolbarState();
+});
+
+/* ---------------- Table insert ---------------- */
+const tablePicker = document.getElementById('table-picker');
+const gridPicker = document.getElementById('grid-picker');
+const gridLabel = document.getElementById('grid-label');
+const GRID_ROWS = 6, GRID_COLS = 8;
+let savedRange = null;
+
+for (let r = 1; r <= GRID_ROWS; r++) {
+  for (let c = 1; c <= GRID_COLS; c++) {
+    const cell = document.createElement('div');
+    cell.dataset.r = r; cell.dataset.c = c;
+    cell.addEventListener('mouseenter', () => highlightGrid(r, c));
+    cell.addEventListener('click', () => {
+      insertTable(r, c);
+      tablePicker.classList.add('hidden');
+    });
+    gridPicker.appendChild(cell);
+  }
+}
+function highlightGrid(r, c) {
+  gridLabel.textContent = `${r} × ${c}`;
+  [...gridPicker.children].forEach(cell => {
+    const cr = +cell.dataset.r, cc = +cell.dataset.c;
+    cell.classList.toggle('hover', cr <= r && cc <= c);
+  });
+}
+
+document.getElementById('btn-table').addEventListener('click', (e) => {
+  const sel = window.getSelection();
+  if (sel.rangeCount > 0) savedRange = sel.getRangeAt(0);
+  tablePicker.classList.toggle('hidden');
+});
+document.addEventListener('click', (e) => {
+  if (!tablePicker.contains(e.target) && e.target.id !== 'btn-table') {
+    tablePicker.classList.add('hidden');
+  }
+});
+
+function insertTable(rows, cols) {
+  page.focus();
+  if (savedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+  }
+  let html = '<table>';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < cols; c++) html += '<td>&nbsp;</td>';
+    html += '</tr>';
+  }
+  html += '</table><p><br></p>';
+  document.execCommand('insertHTML', false, html);
+}
+
+/* ---------------- Image insert ---------------- */
+const fileImage = document.getElementById('file-image');
+document.getElementById('btn-image').addEventListener('click', () => fileImage.click());
+fileImage.addEventListener('change', () => {
+  const file = fileImage.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    page.focus();
+    document.execCommand('insertHTML', false,
+      `<img src="${reader.result}" style="width:4cm;" contenteditable="false">`);
+  };
+  reader.readAsDataURL(file);
+  fileImage.value = '';
+});
+
+/* ---------------- Structure guides ---------------- */
+function applyMarginVars() {
+  const top = document.getElementById('margin-top').value + 'cm';
+  const left = document.getElementById('margin-left').value + 'cm';
+  const right = document.getElementById('margin-right').value + 'cm';
+  const bottom = document.getElementById('margin-bottom').value + 'cm';
+  paper.style.setProperty('--m-top', top);
+  paper.style.setProperty('--m-left', left);
+  paper.style.setProperty('--m-right', right);
+  paper.style.setProperty('--m-bottom', bottom);
+}
+['margin-top', 'margin-left', 'margin-right', 'margin-bottom'].forEach(id => {
+  document.getElementById(id).addEventListener('input', applyMarginVars);
+});
+applyMarginVars();
+
+document.getElementById('crest-size').addEventListener('input', (e) => {
+  paper.style.setProperty('--crest-size', e.target.value + 'cm');
+});
+paper.style.setProperty('--crest-size', document.getElementById('crest-size').value + 'cm');
+
+document.getElementById('toggle-margins').addEventListener('change', e => {
+  paper.classList.toggle('show-margins', e.target.checked);
+});
+document.getElementById('toggle-baseline').addEventListener('change', e => {
+  paper.classList.toggle('show-baseline', e.target.checked);
+});
+document.getElementById('toggle-crest').addEventListener('change', e => {
+  paper.classList.toggle('show-crest', e.target.checked);
+  document.getElementById('crest-size-row').style.display = e.target.checked ? '' : 'none';
+});
+paper.classList.add('show-margins', 'show-crest');
+
+/* ---------------- Print ---------------- */
+document.getElementById('btn-print').addEventListener('click', () => window.print());
+
+/* ---------------- Draft save / load (localStorage) ---------------- */
+const DRAFT_KEY = 'smartdoc-draft-v1';
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  const draft = {
+    templateId: activeTemplateId,
+    content: page.innerHTML,
+    margins: {
+      top: document.getElementById('margin-top').value,
+      left: document.getElementById('margin-left').value,
+      right: document.getElementById('margin-right').value,
+      bottom: document.getElementById('margin-bottom').value,
+    },
+    crestSize: document.getElementById('crest-size').value,
+    savedAt: new Date().toISOString()
+  };
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  statusSaved.textContent = `บันทึกฉบับร่างแล้ว (${new Date().toLocaleTimeString('th-TH')})`;
+});
+
+document.getElementById('btn-load').addEventListener('click', () => {
+  const raw = localStorage.getItem(DRAFT_KEY);
+  if (!raw) { alert('ยังไม่มีฉบับร่างที่บันทึกไว้'); return; }
+  const draft = JSON.parse(raw);
+  page.innerHTML = draft.content;
+  activeTemplateId = draft.templateId;
+  if (draft.margins) {
+    document.getElementById('margin-top').value = draft.margins.top;
+    document.getElementById('margin-left').value = draft.margins.left;
+    document.getElementById('margin-right').value = draft.margins.right;
+    document.getElementById('margin-bottom').value = draft.margins.bottom;
+    applyMarginVars();
+  }
+  if (draft.crestSize) {
+    document.getElementById('crest-size').value = draft.crestSize;
+    paper.style.setProperty('--crest-size', draft.crestSize + 'cm');
+  }
+  const tpl = TEMPLATES.find(t => t.id === draft.templateId);
+  statusTemplate.textContent = tpl ? `แบบฟอร์ม: ${tpl.name}` : 'ฉบับร่างที่กู้คืน';
+  statusSaved.textContent = `กู้คืนจากฉบับร่างเมื่อ ${new Date(draft.savedAt).toLocaleString('th-TH')}`;
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  const ok = confirm('ล้างเนื้อหาทั้งหมดในหน้าเอกสารหรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้');
+  if (!ok) return;
+  page.innerHTML = '';
+  activeTemplateId = null;
+  statusTemplate.textContent = 'ยังไม่ได้เลือกแบบฟอร์ม';
+  document.querySelectorAll('#template-list li').forEach(li => li.classList.remove('active'));
+});
+
+/* ---------------- Init ---------------- */
+renderTemplateList();
+loadTemplate(TEMPLATES[0].id, false);
+</script>
+</body>
+</html>
